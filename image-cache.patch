@@ -1,0 +1,103 @@
+--- a/lib/func/image.ts
++++ b/lib/func/image.ts
+@@ -3,6 +3,7 @@
+ //   Maksimal 2 proses ffmpeg berjalan bersamaan supaya RAM/CPU tetap ringan.
+ import { spawn } from "node:child_process";
+ import { Buffer } from "node:buffer";
++import { createHash } from "node:crypto";
+ 
+ export type ImageMode = "cover" | "fit" | "width";
+ export type ImageFormat = "jpeg" | "png";
+@@ -27,6 +28,57 @@
+ const MAX_PARALLEL = 2;
+ const TIMEOUT_MS = 20_000;
+ 
++// Cache hasil image processing. Dibatasi berdasarkan byte agar tidak menghabiskan RAM.
++// Bisa diatur melalui env: IMAGE_CACHE_MAX_BYTES / IMAGE_CACHE_TTL_MS.
++const IMAGE_CACHE_MAX_BYTES = Math.max(0, Number(process.env.IMAGE_CACHE_MAX_BYTES ?? 24 * 1024 * 1024));
++const IMAGE_CACHE_TTL_MS = Math.max(1_000, Number(process.env.IMAGE_CACHE_TTL_MS ?? 10 * 60_000));
++const IMAGE_CACHE_MAX_ENTRIES = 160;
++type CachedImage = { result: ImageResult; expiresAt: number; bytes: number };
++const imageCache = new Map<string, CachedImage>();
++const imageInflight = new Map<string, Promise<ImageResult>>();
++let imageCacheBytes = 0;
++
++function cacheDelete(key: string) {
++  const item = imageCache.get(key);
++  if (!item) return;
++  imageCacheBytes -= item.bytes;
++  imageCache.delete(key);
++}
++function cacheGet(key: string): ImageResult | undefined {
++  const item = imageCache.get(key);
++  if (!item) return;
++  if (item.expiresAt <= Date.now()) { cacheDelete(key); return; }
++  // LRU: pindahkan entry yang dipakai ke ujung Map.
++  imageCache.delete(key);
++  imageCache.set(key, item);
++  return item.result;
++}
++function cachePut(key: string, result: ImageResult) {
++  const bytes = result.buffer.byteLength;
++  if (!IMAGE_CACHE_MAX_BYTES || bytes > IMAGE_CACHE_MAX_BYTES) return;
++  cacheDelete(key);
++  while (imageCache.size >= IMAGE_CACHE_MAX_ENTRIES || imageCacheBytes + bytes > IMAGE_CACHE_MAX_BYTES) {
++    const oldest = imageCache.keys().next();
++    if (oldest.done) break;
++    cacheDelete(oldest.value);
++  }
++  imageCache.set(key, { result, bytes, expiresAt: Date.now() + IMAGE_CACHE_TTL_MS });
++  imageCacheBytes += bytes;
++}
++function imageCacheKey(input: Uint8Array, opts: ImageOptions): string {
++  const mode = opts.mode ?? (opts.height ? "cover" : "width");
++  const format = opts.format ?? "jpeg";
++  const normalized = `${mode}|${opts.width}|${opts.height ?? opts.width}|${format}|${opts.quality ?? 80}|img-v1`;
++  return createHash("sha256").update(normalized).update("\0").update(input).digest("hex");
++}
++/** Statistik sederhana untuk observability; tidak menyertakan konten gambar. */
++export function getImageCacheStats() {
++  return { entries: imageCache.size, bytes: imageCacheBytes, inflight: imageInflight.size, maxBytes: IMAGE_CACHE_MAX_BYTES };
++}
++export function clearImageCache() {
++  imageCache.clear(); imageInflight.clear(); imageCacheBytes = 0;
++}
++
+ let running = 0;
+ const waiters: Array<() => void> = [];
+ async function acquire(): Promise<void> {
+@@ -71,7 +123,7 @@
+ }
+ 
+ /** Ubah ukuran / crop gambar (jpg, png, webp, gif → frame pertama). Melempar error kalau ffmpeg gagal / bukan gambar. */
+-export async function processImage(input: Uint8Array, opts: ImageOptions): Promise<ImageResult> {
++export async function processImageUncached(input: Uint8Array, opts: ImageOptions): Promise<ImageResult> {
+   if (!input?.length) throw new Error("gambar kosong");
+   const mode = opts.mode ?? (opts.height ? "cover" : "width");
+   const height = opts.height ?? opts.width;
+@@ -111,6 +163,25 @@
+   }
+ }
+ 
++/**
++ * Image processing dengan bounded LRU + TTL + in-flight dedup.
++ * Catatan: hasil buffer dibagikan antar pemanggil. Perlakukan sebagai immutable.
++ */
++export async function processImage(input: Uint8Array, opts: ImageOptions): Promise<ImageResult> {
++  if (!input?.length) throw new Error("gambar kosong");
++  const key = imageCacheKey(input, opts);
++  const hit = cacheGet(key);
++  if (hit) return hit;
++  const active = imageInflight.get(key);
++  if (active) return active;
++  const task = processImageUncached(input, opts).then((result) => {
++    cachePut(key, result);
++    return result;
++  }).finally(() => imageInflight.delete(key));
++  imageInflight.set(key, task);
++  return task;
++}
++
+ /** Crop persegi JPEG. Gagal → bytes asli (dipakai apa adanya). */
+ export async function toSquareJpeg(bytes: Uint8Array, size = 640, quality = 85): Promise<Uint8Array> {
+   try {

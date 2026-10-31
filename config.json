@@ -1,0 +1,108 @@
+{
+  "bot": {
+    "name": "Txra-md-Gen2",
+    "title": "✨ Txra-md-Gen2",
+    "footer": "Txra-md-Gen2 • powered by Ghost King",
+    "url": "https://hitori_gotou.co.jp",
+    "favicon": "",
+    "thumbnail": "https://raw.githubusercontent.com/zaxxinfinity/tourl/main/1792596469451.jpg"
+  },
+  "group": {
+    "name": "Txra-md Group",
+    "url": "",
+    "id": "120363398395207191@g.us"
+  },
+  "channel": {
+    "name": "Txra-md Channel",
+    "id": "120363398106360290@newsletter",
+    "link": "https://whatsapp.com/channel/0029Vb6B9xFCxoAseuG1g610"
+  },
+  "owner": {
+    "primary": "255671205830",
+    "additional": []
+  },
+  "prefix": ["!", ".", "/", "#", ">", "$"],
+  "pairing": {
+    "usePairingCode": true,
+    "customCode": "F4R1DEPP"
+  },
+  "session": {
+    "id": "default",
+    "backend": "sqlite",
+    "sqlitePath": "./db/sqljs/session.db"
+  },
+  "redis": {
+    "host": "127.0.0.1",
+    "port": 6379,
+    "password": null,
+    "keyPrefix": "wa:"
+  },
+  "level": {
+    "expPerLevel": 25,
+    "expMultiplier": 1.5,
+    "baseLimit": 20,
+    "limitPerLevel": 5,
+    "coinsPerCommand": 10,
+    "coinsDailyBonus": 50,
+    "premiumLimitMultiplier": 3,
+    "premiumExpMultiplier": 2,
+    "premiumCoinMultiplier": 2
+  },
+  "jadibot": {
+    "max": 3,
+    "sessionDir": "db/jadibot"
+  },
+  "features": {
+    "autoReact": true,
+    "reactJam": true,
+    "autoReload": true,
+    "verboseLog": false,
+    "sqliteTune": true,
+    "eventAll": false
+  },
+  "messages": {
+    "permission": {
+      "owner": "❌ Only the bot owner can use this command.",
+      "primaryowner": "❌ Only the primary owner can use this command.",
+      "admin": "❌ This command is available to group admins only.",
+      "premium": "❌ This command is available to premium users only.",
+      "botadmin": "❌ Make the bot a group admin first.",
+      "registered": "❌ You are not registered. Use .register first.",
+      "limit": "❌ Your command limit has been reached.",
+      "banned": "❌ You are banned from using this bot.",
+      "group": "❌ This command can only be used in groups.",
+      "private": "❌ This command can only be used in private chat.",
+      "adminowner": "❌ Only a group admin or the bot owner can use this command."
+    },
+    "reply": {
+      "media": "❌ Send or reply to the required media.",
+      "image": "❌ Send or reply to an image.",
+      "video": "❌ Send or reply to a video.",
+      "audio": "❌ Send or reply to an audio file or video.",
+      "sticker": "❌ Send or reply to a sticker.",
+      "document": "❌ Send or reply to a document.",
+      "text": "❌ Enter the required text.",
+      "quoted": "❌ Reply to a message first.",
+      "prompt": "❌ Enter a prompt first.",
+      "link": "❌ Enter a link first.",
+      "linkInvalid": "❌ The link is invalid. Check the URL and try again.",
+      "number": "❌ Enter a phone number or mention the target user.",
+      "query": "❌ Enter something to search for.",
+      "tag": "❌ Specify a target by mentioning, replying, or entering a phone number.",
+      "wait": "⏳ Processing. Please wait.",
+      "success": "✅ Done successfully.",
+      "error": "❌ An error occurred. Please report it to the bot owner.",
+      "notfound": "❌ Nothing was found. Check your input and try again.",
+      "timeout": "⏳ The request timed out. Please try again.",
+      "busy": "⏳ Another task is still running. Please wait.",
+      "unknown": "❌ Unknown command. Use .menu to view the available commands."
+    },
+    "system": {
+      "welcome": "👋 Welcome",
+      "loading": "⏳ Loading",
+      "noTarget": "❌ Target not found.",
+      "notGroup": "❌ This command can only be used in groups.",
+      "notPrivate": "❌ This command can only be used in private chat."
+    }
+  }
+}
